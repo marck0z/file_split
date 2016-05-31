@@ -43,10 +43,10 @@ fn process_file(file_path: &str, word_limit: i32) {
 
     // Open the path in read-only mode, returns `io::Result<File>`
     let mut file:File = match File::open(&path) {
-    // The `description` method of `io::Error` returns a string that
-    // describes the error
-    Err(why) => panic!("couldn't open {}: {}", path.display(), why.description()),
-    Ok(file) => {println!("opened OK");file},
+        // The `description` method of `io::Error` returns a string that
+        // describes the error
+        Err(why) => panic!("couldn't open {}: {}", path.display(), why.description()),
+        Ok(file) => {println!("opened OK");file},
     };
 
     // Read the file contents into a string, returns `io::Result<usize>`
@@ -58,7 +58,7 @@ fn process_file(file_path: &str, word_limit: i32) {
     }
 
     //create dir
-    let parent = path.parent().expect("invalid parent dir").to_str().unwrap();
+    let parent = path.parent().and_then(|x| x.to_str()).expect("invalid parent dir");
     let dir_path = if parent.char_indices().count() == 1 {
         format!("{}{}", parent, dir_name)
     } else {
@@ -106,8 +106,7 @@ fn save_file(dir: &str, file_number: i32, file_name: &str, new_contents: &String
 
     match file.write_all(new_contents.as_bytes()) {
         Err(why) => {
-            panic!("couldn't write to {}: {}", path,
-                                               why.description())
+            panic!("couldn't write to {}: {}", path, why.description())
         },
         Ok(_) => println!("successfully wrote to {}", path),
     }
