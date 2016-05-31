@@ -1,4 +1,4 @@
-extern crate hello_world;
+extern crate file_split;
 
 use std::env;
 use std::str::FromStr;
@@ -9,7 +9,6 @@ fn main() {
     }
     let file_path:&str=&env::args().nth(1).expect("invalid FILE_NAME");
     let word_limit:i32=env::args().nth(2).and_then(|x| FromStr::from_str(&x).ok()).expect("invalid WORD_COUNT");
-    hello_world::file_split::process_file(file_path,word_limit);
+    file_split::util::process_file(file_path,word_limit);
     println!("finished successfully")
 }
-

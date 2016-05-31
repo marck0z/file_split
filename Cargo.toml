@@ -1,5 +1,5 @@
 [package]
-name = "hello_world"
+name = "file_split"
 version = "0.1.0"
 authors = ["Marcos Soto <markoz.js@gmail.com>"]
 
