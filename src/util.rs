@@ -4,6 +4,9 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 
+/// Takes a file and creates a directory with the same name
+/// inside of it creates as many files as needed each, containing only
+/// a determined number of words 'word_limit'
 pub fn process_file(file_path: &str, word_limit: i32) {
     // Create a path to the desired file
     let path = Path::new(file_path);
@@ -80,6 +83,7 @@ pub fn process_file(file_path: &str, word_limit: i32) {
     // `file` goes out of scope, and the "hello.txt" file gets closed
 }
 
+/// Saves the contents in a file with a custom made name
 fn save_file(dir: &str, file_number: i32, file_name: &str, new_contents: &String){
     let new_file_name=if file_number<10 {format!("0{}-{}",file_number,file_name)} else {format!("{}-{}",file_number,file_name)};
     let path=format!("{}/{}",dir, new_file_name);
