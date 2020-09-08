@@ -73,9 +73,9 @@ pub fn split_file(path: &Path, word_limit: u32, repeated_words:u32) {
 fn save_file(dir: &Path, file_number: i32, file_name: &str, text: &String) {
     //create the name of the new file
     let new_file_name = if file_number < 10 {
-        format!("0{}-{}", file_number, file_name)
+        format!("0{}-{}.txt", file_number, file_name)
     } else {
-        format!("{}-{}", file_number, file_name)
+        format!("{}-{}.txt", file_number, file_name)
     };
     let new_file = dir.join(new_file_name);
 
