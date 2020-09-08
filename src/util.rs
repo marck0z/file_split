@@ -1,105 +1,94 @@
-use std::error::Error;
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 
-/// Takes a file and creates a directory with the same name
-/// inside of it creates as many files as needed each, containing only
-/// a determined number of words 'word_limit'
-pub fn process_file(file_path: &str, word_limit: i32) {
-    // Create a path to the desired file
-    let path = Path::new(file_path);
-    let file_name=path.file_name().and_then(|x| x.to_str()).expect("invalid file name");
-    //let file_name=path.file_name().expect("no file name").to_str().unwrap_or("invalid_name");
-    let mut file_number=1;
-    let dir_name;
+/// Will read the file in `path` and write its contents into multiple files
+/// each with at most `word_limit` words
+///
+/// Each file will also contain the last 10 words of the previous file by default
+pub fn split_file(path: &Path, word_limit: u32, repeated_words:u32) {
 
-    //obtain dir name
-    {
-        let mut index=0;
-        for (i, c) in file_name.chars().enumerate() {
-            if c == '.' {
-                index=i;
-                break;
-            }
-        }
-        if index>0 {
-            dir_name = &file_name[0..index];
-        }
-        else {
-            dir_name=&file_name;
-        }
-    }
-
-    // Open the path in read-only mode, returns `io::Result<File>`
-    let mut file:File = match File::open(&path) {
-        // The `description` method of `io::Error` returns a string that
-        // describes the error
-        Err(why) => panic!("couldn't open {}: {}", path.display(), why.description()),
-        Ok(file) => {println!("opened OK");file},
-    };
-
-    // Read the file contents into a string, returns `io::Result<usize>`
+    // Read the file contents into a string
+    let mut file: File = File::open(path)
+        .expect(&format!("couldn't open file: {}", path.display()));
     let mut contents = String::new();
     match file.read_to_string(&mut contents)
     {
-        Err(why) => panic!("couldn't read {}: {}", path.display(), why.description()),
-        Ok(_) => println!("{} read ok", path.display()),
+        Err(why) => panic!("couldn't read {}: {}", path.display(), why),
+        Ok(bytes) => println!("read {} bytes", bytes),
     }
 
     //create dir
-    let parent = path.parent().and_then(|x| x.to_str()).expect("invalid parent dir");
-    let dir_path = if parent.char_indices().count() == 1 {
-        format!("{}{}", parent, dir_name)
-    } else {
-        format!("{}/{}", parent, dir_name)
-    };
-    println!("dir:{}", dir_path);
-    if !Path::new(&dir_path).exists() {
-        fs::create_dir(&dir_path).unwrap();
+    let file_name = path.file_stem().expect("invalid file name");
+    let absolute_path = fs::canonicalize(path).unwrap();
+    let parent_dir = absolute_path.parent().unwrap();
+    if !parent_dir.is_dir() {
+        panic!("invalid parent directory: {}", parent_dir.display())
     }
+    let current_dir = parent_dir.join(file_name);
+    fs::create_dir(&current_dir)
+        .expect("can't create dir");
 
-    //separate lines, count words
-    let mut tmp=String::new();
-    let mut word_count=0;
-    for line in contents.lines(){
-        word_count=word_count+line.split_whitespace().count() as i32;
-        tmp.push_str(line);
-        //println!("i:{} word:{}",i,word);
-        if word_count>=word_limit {
-            save_file(&dir_path, file_number,file_name,&tmp);
-            file_number=file_number+1;
-            word_count=0;
-            tmp.clear();
-            tmp.push_str(line); //previous last line
+    //count words, create files
+    let mut i = 0;
+    let mut file_number = 1;
+    let mut buf = String::with_capacity((word_limit * 4) as usize);
+    let mut last_words = String::new();
+    for line in contents.lines() {
+        let words = line.split_whitespace();
+        for word in words {
+            buf.push_str(word);
+            buf.push(' ');
+
+            //save the last 10 words to use in the next file
+            if i > word_limit - repeated_words {
+                last_words.push_str(word);
+                last_words.push(' ');
+            }
+
+            if i < word_limit {
+                i += 1;
+            } else {
+                save_file(&current_dir, file_number, file_name.to_str().unwrap(), &buf);
+                buf.clear();
+                buf.push_str(&last_words);
+                last_words.clear();
+                file_number += 1;
+                i = 0;
+            }
         }
-        tmp.push('\n');
+        buf.push('\r');
+        buf.push('\n');
     }
-    if !tmp.is_empty() {
-        save_file(&dir_path, file_number,file_name,&tmp);
-    }
-
-    // `file` goes out of scope, and the "hello.txt" file gets closed
 }
 
-/// Saves the contents in a file with a custom made name
-fn save_file(dir: &str, file_number: i32, file_name: &str, new_contents: &String){
-    let new_file_name=if file_number<10 {format!("0{}-{}",file_number,file_name)} else {format!("{}-{}",file_number,file_name)};
-    let path=format!("{}/{}",dir, new_file_name);
+/// Saves the contents in a file with a custom name
+/// # Arguments
+///
+/// * `dir` - The directory where this file will be saved
+/// * `file_number` - The index of the file to be included in its name
+/// * `file_name` - The name of the original file
+/// * `text` - Text of the new file
+fn save_file(dir: &Path, file_number: i32, file_name: &str, text: &String) {
+    //create the name of the new file
+    let new_file_name = if file_number < 10 {
+        format!("0{}-{}", file_number, file_name)
+    } else {
+        format!("{}-{}", file_number, file_name)
+    };
+    let new_file = dir.join(new_file_name);
 
-    // Open a file in write-only mode, returns `io::Result<File>`
-    let mut file = match File::create(&path) {
-        Err(why) => panic!("couldn't create {}: {}",
-                           path,
-                           why.description()),
+    // Open a file in write-only mode
+    let mut file = match File::create(&new_file) {
+        Err(why) => panic!("couldn't create {}: {}", new_file.display(), why),
         Ok(file) => file,
     };
 
-    match file.write_all(new_contents.as_bytes()) {
+    match file.write_all(text.as_bytes()) {
         Err(why) => {
-            panic!("couldn't write to {}: {}", path, why.description())
-        },
-        Ok(_) => println!("successfully wrote to {}", path),
+            panic!("couldn't write to {}: {}", new_file.display(), why)
+        }
+        Ok(_) => println!("successfully wrote to {}", new_file.display()),
     }
 }
