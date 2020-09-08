@@ -8,13 +8,9 @@ Command line utility to split large text files into multiple small files by numb
 cargo build --release
 ```
 
-## Running the tests
-
-Explain how to run the automated tests for this system
-
 ## Usage
 
-Running the following command will create a folder with the resulting files inside
+Running the following command will create a directory with the resulting files inside
 ```
 file_split FILE_TO_SPLIT WORD_COUNT [REPEATED_WORDS]
 ```

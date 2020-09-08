@@ -2,10 +2,12 @@ extern crate file_split;
 
 use std::env;
 use std::path::Path;
+use std::process::exit;
 
 fn main() {
     if env::args().count() < 3 {
-        panic!("Usage: file_split FILE_TO_SPLIT WORD_COUNT [REPEATED_WORDS]");
+        println!("Usage: file_split FILE_TO_SPLIT WORD_COUNT [REPEATED_WORDS]");
+        exit(0)
     }
 
     let mut args = env::args();
